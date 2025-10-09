@@ -8,11 +8,29 @@ const { DefaultAzureCredential } = require("@azure/identity");
 
 const app = express();
 app.use(express.json());
-const corsOptions = {
-  origin: "https://purple-field-0ffa0871e.2.azurestaticapps.net",
+const allowedOrigins = [
+  "https://purple-field-0ffa0871e.2.azurestaticapps.net",
+  "http://localhost:4280" // optional for local testing
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+app.options("*", cors({
+  origin: allowedOrigins,
   credentials: true
-};
-app.use(cors(corsOptions));
+}));
+
 let pool;
 
 (async () => {
