@@ -10,26 +10,32 @@ const app = express();
 app.use(express.json());
 const allowedOrigins = [
   "https://purple-field-0ffa0871e.2.azurestaticapps.net",
-  "http://localhost:4280" // optional for local testing
+  "http://localhost:4280" // for local testing
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow same-origin or no-origin (e.g. curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
 
+// Explicitly handle preflight
 app.options("*", cors({
   origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
 
 let pool;
 
@@ -82,46 +88,46 @@ app.get("/", (req, res) => {
   res.send("Server is running ✅");
 });
 
-// Get current logged-in user (like /api/me)
-app.get("/api/me", authenticate, async (req, res) => {
-  try {
-    const email = req.user.preferred_username || req.user.upn;
-    const result = await pool.query(
-      `SELECT u.*, r.role_name, d.department_name
-       FROM users u
-       LEFT JOIN roles r ON u.role_id = r.id
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.user_principal_name = $1
-       LIMIT 1`,
-      [email]
-    );
+// // Get current logged-in user (like /api/me)
+// app.get("/api/me", authenticate, async (req, res) => {
+//   try {
+//     const email = req.user.preferred_username || req.user.upn;
+//     const result = await pool.query(
+//       `SELECT u.*, r.role_name, d.department_name
+//        FROM users u
+//        LEFT JOIN roles r ON u.role_id = r.id
+//        LEFT JOIN departments d ON u.department_id = d.id
+//        WHERE u.user_principal_name = $1
+//        LIMIT 1`,
+//       [email]
+//     );
 
-    if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
-    const user = result.rows[0];
+//     if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
+//     const user = result.rows[0];
 
-    // Map to dashboard
-    let dashboard = "default-dashboard.html";
-    const roleName = user.role_name?.toLowerCase();
-    if (roleName?.includes("manager")) dashboard = "pm-dashboard.html";
-    else if (roleName?.includes("leader")) dashboard = "tl-dashboard.html";
-    else if (roleName?.includes("engineer")) dashboard = "engineer-dashboard.html";
+//     // Map to dashboard
+//     let dashboard = "default-dashboard.html";
+//     const roleName = user.role_name?.toLowerCase();
+//     if (roleName?.includes("manager")) dashboard = "pm-dashboard.html";
+//     else if (roleName?.includes("leader")) dashboard = "tl-dashboard.html";
+//     else if (roleName?.includes("engineer")) dashboard = "engineer-dashboard.html";
 
-    res.json({
-      message: "Authenticated",
-      user: {
-        id: user.id,
-        display_name: user.display_name,
-        email: user.user_principal_name,
-        role: user.role_name,
-        department_name: user.department_name,
-      },
-      dashboard_path: dashboard,
-    });
-  } catch (err) {
-    console.error("Error fetching user:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+//     res.json({
+//       message: "Authenticated",
+//       user: {
+//         id: user.id,
+//         display_name: user.display_name,
+//         email: user.user_principal_name,
+//         role: user.role_name,
+//         department_name: user.department_name,
+//       },
+//       dashboard_path: dashboard,
+//     });
+//   } catch (err) {
+//     console.error("Error fetching user:", err.message);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
 
 // // ========================= INDEX & PM ENDPOINTS =========================
 
