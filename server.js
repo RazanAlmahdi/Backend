@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 const { DefaultAzureCredential } = require("@azure/identity");
 
 const app = express();
-app.use(express.json());
+
 const allowedOrigins = [
   "https://purple-field-0ffa0871e.2.azurestaticapps.net",
   "http://localhost:4280" // for local testing
@@ -15,20 +15,16 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow same-origin or no-origin (e.g. curl, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("Blocked by CORS:", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
+app.use(express.json());
 
-// Explicitly handle preflight
+// Explicit preflight
 app.options("*", cors({
   origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
