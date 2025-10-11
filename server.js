@@ -79,6 +79,14 @@ async function authenticate(req, res, next) {
   next();
 }
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://purple-field-0ffa0871e.2.azurestaticapps.net");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 // Basic test route
 app.get("/", (req, res) => {
   res.send("Server is running ✅");
